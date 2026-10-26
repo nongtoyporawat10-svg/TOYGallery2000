@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#faf7f2">
+<title>Toy Gallery 2000's</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+    theme: { extend: {
+        fontFamily: {
+            display: ['"Cormorant Garamond"', '"Noto Serif Thai"', 'Georgia', 'serif'],
+            serif:   ['Lora', '"Noto Serif Thai"', 'Georgia', 'serif'],
+        },
+        colors: {
+            cream: '#faf7f2', sand: '#f3ece2', line: '#e8dfd2',
+            ink: '#3a2e24', muted: '#8a7a6a',
+            clay: { DEFAULT: '#8c6b4a', dark: '#6e5339', light: '#c9ad8c' }
+        }
+    }}
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style type="text/tailwindcss">
+    .btn-primary { @apply inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-clay text-cream text-[13px] font-medium tracking-wide hover:bg-clay-dark active:scale-[.97] transition duration-300 shadow-[0_8px_24px_-12px_rgba(110,83,57,.7)] disabled:opacity-50 disabled:pointer-events-none; }
+    .btn-ghost   { @apply inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full border border-line bg-white/60 text-[13px] font-medium text-ink hover:bg-white hover:border-clay/40 active:scale-[.97] transition duration-300 disabled:opacity-40 disabled:pointer-events-none; }
+    .btn-icon    { @apply inline-flex items-center justify-center w-10 h-10 rounded-full text-muted hover:text-ink hover:bg-sand transition duration-300; }
+    .input       { @apply w-full h-11 px-4 rounded-xl border border-line bg-white text-sm text-ink placeholder:text-stone-400 focus:outline-none focus:ring-4 focus:ring-clay/10 focus:border-clay/50 transition; }
+    .card        { @apply bg-white border border-line rounded-2xl shadow-[0_1px_2px_rgba(58,46,36,.04)]; }
+    .eyebrow     { @apply text-[11px] uppercase tracking-[0.28em] text-muted; }
+    .label       { @apply block text-xs font-medium text-muted mb-1.5; }
+    .admin-tab   { @apply flex items-center gap-3 px-3 h-10 rounded-xl text-sm text-muted hover:text-ink hover:bg-sand transition whitespace-nowrap; }
+    .admin-tab.active { @apply bg-sand text-ink font-medium; }
+</style>
+
+<style>
+    :root { --ease: cubic-bezier(.22,.8,.24,1); }
+    body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+
+    /* Page entrance */
+    .rise { animation: rise 1s var(--ease) both; animation-delay: var(--d, 0ms); }
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+    .fade-in { animation: fadeIn .5s var(--ease) both; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Gallery tiles */
+    .tile { opacity: 0; transform: translateY(28px); transition: opacity .9s var(--ease), transform .9s var(--ease); transition-delay: var(--d, 0ms); }
+    .tile.in { opacity: 1; transform: none; }
+    .tile img { opacity: 0; transform: scale(1.08); filter: blur(10px);
+        transition: opacity .8s var(--ease), transform 1.4s var(--ease), filter .9s var(--ease), border-radius .4s var(--ease); }
+    .tile img.loaded { opacity: 1; transform: scale(1); filter: none; }
+    .tile-shade { opacity: 0; transition: opacity .5s var(--ease); }
+    @media (hover: hover) {
+        .tile:hover img.loaded { transform: scale(1.045); }
+        .tile:hover .tile-shade { opacity: 1; }
+        .tile-dl { opacity: 0; transform: translateY(6px); }
+        .tile:hover .tile-dl { opacity: 1; transform: none; }
+    }
+    .tile-dl { transition: opacity .4s var(--ease), transform .4s var(--ease), background .3s; }
+
+    /* Selection */
+    .tile-check { opacity: 0; transform: scale(.5); transition: all .35s var(--ease); }
+    .selecting .tile-check { opacity: 1; transform: scale(1); }
+    .selecting .tile-dl, .selecting .tile-shade { display: none; }
+    .tile.selected img.loaded, .tile.selected:hover img.loaded { transform: scale(.87); border-radius: 12px; }
+    .tile.selected .tile-check { background: #8c6b4a; border-color: #8c6b4a; color: #fff; }
+    .tile.selected { background: #efe5d8; }
+
+    /* Shimmer */
+    .shimmer { background: linear-gradient(100deg, #f3ece2 30%, #fbf8f3 50%, #f3ece2 70%); background-size: 220% 100%; animation: shimmer 1.6s linear infinite; transition: opacity .6s; }
+    .shimmer.done { animation: none; opacity: 0; }
+    @keyframes shimmer { to { background-position: -220% 0; } }
+
+    /* Lightbox */
+    #lightbox { opacity: 0; visibility: hidden; transition: opacity .45s var(--ease), visibility .45s; }
+    #lightbox.open { opacity: 1; visibility: visible; }
+    #lb-img { transition: opacity .35s var(--ease), transform .6s var(--ease); }
+    #lightbox:not(.open) #lb-img { transform: scale(.94); }
+    #lb-img.swap { opacity: 0; transform: scale(.97); }
+
+    /* Action bar & sheet */
+    #action-bar { transform: translateY(140%); transition: transform .55s var(--ease); }
+    #action-bar.show { transform: none; }
+    .sheet { opacity: 0; visibility: hidden; transition: opacity .35s var(--ease), visibility .35s; }
+    .sheet.open { opacity: 1; visibility: visible; }
+    .sheet-panel { transform: translateY(40px); transition: transform .5s var(--ease); }
+    .sheet.open .sheet-panel { transform: none; }
+
+    /* Camera */
+    .face-guide { border: 1.5px dashed rgba(250,247,242,.9); border-radius: 50%; box-shadow: 0 0 0 9999px rgba(58,46,36,.5); animation: breathe 2.6s var(--ease) infinite; }
+    @keyframes breathe { 50% { transform: scale(1.025); border-color: rgba(201,173,140,1); } }
+
+    #toast { transition: opacity .35s var(--ease), transform .35s var(--ease); }
+    #toast.hide { opacity: 0; transform: translate(-50%, 12px); pointer-events: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { scrollbar-width: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .001ms !important; animation-delay: 0ms !important; transition-duration: .001ms !important; transition-delay: 0ms !important; }
+    }
+</style>
+</head>
+
+<body class="font-serif bg-cream text-ink min-h-screen">
+
+<!-- Top progress bar -->
+<div id="progress" class="fixed top-0 left-0 h-[2px] bg-clay z-[90] transition-all duration-500 opacity-0" style="width:0"></div>
+
+<!-- ============================== GUEST ============================== -->
+<div id="app-guest" class="min-h-screen flex flex-col">
+
+    <nav class="sticky top-0 z-30 bg-cream/80 backdrop-blur-md border-b border-line/70">
+        <div class="max-w-6xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
+            <button onclick="showView('view-gallery')" class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-full border border-clay/30 text-clay flex items-center justify-center">
+                    <i class="fa-solid fa-camera-retro text-sm"></i>
+                </span>
+                <span class="font-display text-xl sm:text-2xl font-semibold tracking-tight">Toy Gallery <span class="italic font-normal text-clay">2000's</span></span>
+            </button>
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <button onclick="showView('view-gallery')" class="hidden sm:inline-flex btn-ghost border-transparent bg-transparent">Gallery</button>
+                <button onclick="showView('view-scan')" class="btn-primary h-10 px-4 sm:px-5">
+                    <i class="fa-regular fa-face-smile"></i><span>Find Me</span>
+                </button>
+                <button onclick="openAdmin()" class="btn-icon" aria-label="Admin"><i class="fa-solid fa-lock text-xs"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <main id="guest-main" class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 transition-[padding] duration-500">
+
+        <!-- VIEW: GALLERY -->
+        <section id="view-gallery" class="guest-view">
+            <header class="grid sm:grid-cols-[1fr_auto] gap-8 items-end pt-8 sm:pt-14 pb-10 sm:pb-14">
+                <div class="min-w-0">
+                    <p class="rise eyebrow" style="--d:0ms">Event Gallery</p>
+                    <h1 id="album-title" class="rise mt-3 font-display text-[2.75rem] leading-[1.02] sm:text-7xl font-medium tracking-tight break-words" style="--d:80ms">Loading</h1>
+                    <div class="rise mt-5 flex items-center gap-3" style="--d:160ms">
+                        <span class="h-px w-10 bg-clay/50"></span>
+                        <p class="font-display italic text-xl sm:text-2xl text-clay">Scan to get your photos</p>
+                    </div>
+                    <p class="rise mt-6 flex items-center gap-2 text-xs text-muted" style="--d:240ms">
+                        <span id="sync-dot" class="w-1.5 h-1.5 rounded-full bg-stone-300"></span>
+                        <span id="status-label">Connecting…</span>
+                    </p>
+                </div>
+
+                <div class="rise hidden sm:block" style="--d:220ms">
+                    <div class="card p-4 w-44 text-center">
+                        <img id="qr-img" alt="QR code" class="w-36 h-36 mx-auto">
+                        <p class="mt-3 eyebrow text-[10px] tracking-[0.2em]">Scan with phone</p>
+                    </div>
+                </div>
+
+                <button onclick="shareGallery()" class="rise sm:hidden btn-ghost w-full h-11" style="--d:300ms">
+                    <i class="fa-solid fa-arrow-up-from-bracket text-xs"></i> Share this album
+                </button>
+            </header>
+
+            <!-- Toolbar -->
+            <div class="sticky top-16 z-20 -mx-4 px-4 sm:-mx-8 sm:px-8 bg-cream/85 backdrop-blur-md border-y border-line/70 py-3 mb-5 sm:mb-8 flex items-center justify-between">
+                <div class="flex items-baseline gap-3">
+                    <h2 class="font-display text-2xl font-medium">All Photos</h2>
+                    <span id="photo-count" class="text-xs text-muted"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btn-select-all" onclick="selectAll()" class="hidden btn-ghost h-9 fade-in">Select all</button>
+                    <button id="btn-select" onclick="setSelectMode(!selecting)" class="btn-ghost h-9" disabled>
+                        <i class="fa-regular fa-square-check text-xs"></i><span>Select</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-5 pb-10">
+                <div class="aspect-[4/5] rounded-xl shimmer"></div>
+                <div class="aspect-[4/5] rounded-xl shimmer"></div>
+                <div class="aspect-[4/5] rounded-xl shimmer"></div>
+                <div class="aspect-[4/5] rounded-xl shimmer"></div>
+            </div>
+        </section>
+
+        <!-- VIEW: FACE SCAN -->
+        <section id="view-scan" class="guest-view hidden py-8 sm:py-14">
+            <div class="max-w-2xl mx-auto">
+                <div class="flex items-start justify-between mb-8">
+                    <div>
+                        <p class="eyebrow rise">Face Search</p>
+                        <h1 class="rise font-display text-4xl sm:text-5xl font-medium tracking-tight mt-2" style="--d:80ms">Find your photos</h1>
+                        <p class="rise text-sm text-muted mt-2" style="--d:160ms">Position your face inside the frame.</p>
+                    </div>
+                    <button onclick="showView('view-gallery')" class="btn-icon border border-line" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="rise relative w-full aspect-[3/4] sm:aspect-video bg-ink rounded-3xl overflow-hidden flex items-center justify-center" style="--d:200ms">
+                    <video id="camera" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover -scale-x-100"></video>
+                    <div class="face-guide relative z-10 w-52 h-72 sm:w-56 sm:h-72"></div>
+                    <div id="camera-error" class="hidden absolute inset-0 z-20 bg-ink text-cream flex-col items-center justify-center text-center p-6">
+                        <i class="fa-solid fa-video-slash text-2xl mb-3 text-clay-light"></i>
+                        <p class="font-display text-xl">Camera unavailable</p>
+                        <p class="text-xs text-cream/60 mt-1">Please allow camera access in your browser settings.</p>
+                    </div>
+                </div>
+                <div class="flex justify-center mt-8">
+                    <button onclick="capture()" class="btn-primary w-full sm:w-auto h-12 px-10"><i class="fa-solid fa-camera"></i> Take photo</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: RESULT -->
+        <section id="view-result" class="guest-view hidden py-8 sm:py-14">
+            <div class="grid lg:grid-cols-[280px_1fr] gap-8 lg:gap-12">
+                <aside class="card p-7 text-center lg:sticky lg:top-24 h-max rise">
+                    <img id="profile-img" alt="" class="w-28 h-28 mx-auto rounded-full object-cover bg-sand ring-4 ring-sand">
+                    <p class="font-display text-2xl mt-5">Search complete</p>
+                    <p class="text-xs text-muted mt-1">Demo mode · face matching not connected</p>
+                    <button onclick="showView('view-scan')" class="btn-ghost w-full mt-6"><i class="fa-solid fa-rotate-right text-xs"></i> Try again</button>
+                </aside>
+                <div>
+                    <div class="flex items-end justify-between mb-6 gap-4">
+                        <div>
+                            <p class="eyebrow">Results</p>
+                            <h2 class="font-display text-4xl font-medium tracking-tight mt-1">Your photos</h2>
+                        </div>
+                        <button id="btn-dl-results" onclick="downloadPhotos(resultList)" class="btn-primary h-10 px-5"><i class="fa-solid fa-arrow-down text-xs"></i> Download all</button>
+                    </div>
+                    <div id="result-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-5"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-line/70 py-8 text-center">
+        <p class="font-display italic text-lg text-clay">Toy Gallery 2000's</p>
+        <p class="eyebrow text-[10px] mt-1">Captured with care</p>
+    </footer>
+</div>
+
+<!-- SELECTION ACTION BAR -->
+<div id="action-bar" class="fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-events-none">
+    <div class="pointer-events-auto mx-auto max-w-lg bg-ink text-cream rounded-full pl-6 pr-2 h-16 flex items-center gap-3 shadow-[0_20px_50px_-15px_rgba(58,46,36,.6)]">
+        <div class="flex-1 min-w-0">
+            <p id="sel-count" class="font-display text-xl leading-none">0 selected</p>
+            <p id="sel-hint" class="text-[11px] text-cream/50 mt-1">Tap photos to select</p>
+        </div>
+        <button onclick="clearSelection()" class="w-10 h-10 rounded-full hover:bg-white/10 transition" aria-label="Clear"><i class="fa-solid fa-xmark text-sm"></i></button>
+        <button id="dl-btn" onclick="downloadSelected()" class="inline-flex items-center gap-2 h-12 px-5 rounded-full bg-cream text-ink text-[13px] font-medium hover:bg-white transition disabled:opacity-40" disabled>
+            <i class="fa-solid fa-arrow-down text-xs"></i> Download
+        </button>
+    </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" class="fixed inset-0 z-50 bg-[#1f1812]/95 backdrop-blur-sm flex flex-col">
+    <div class="flex items-center justify-between px-4 sm:px-6 h-16 text-cream">
+        <span id="lb-counter" class="font-display text-lg tracking-wider text-cream/70"></span>
+        <button onclick="closeLightbox()" class="w-10 h-10 rounded-full hover:bg-white/10 transition" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="lb-stage" class="flex-1 relative flex items-center justify-center px-4 sm:px-20 min-h-0">
+        <button onclick="stepLightbox(-1)" class="hidden sm:flex absolute left-6 w-12 h-12 rounded-full border border-white/15 hover:bg-white/10 text-cream items-center justify-center transition"><i class="fa-solid fa-chevron-left text-sm"></i></button>
+        <img id="lb-img" alt="" class="max-h-full max-w-full object-contain rounded-lg shadow-2xl">
+        <button onclick="stepLightbox(1)" class="hidden sm:flex absolute right-6 w-12 h-12 rounded-full border border-white/15 hover:bg-white/10 text-cream items-center justify-center transition"><i class="fa-solid fa-chevron-right text-sm"></i></button>
+    </div>
+    <div class="p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] flex flex-col items-center gap-2">
+        <button id="lb-download" onclick="downloadPhotos([photos[lbIndex]])" class="inline-flex items-center justify-center gap-2 h-12 w-full sm:w-auto px-10 rounded-full bg-cream text-ink text-[13px] font-medium hover:bg-white transition disabled:opacity-50">
+            <i class="fa-solid fa-arrow-down text-xs"></i> Download photo
+        </button>
+        <p class="text-[11px] text-cream/40">If download doesn't start, long-press the photo to save it.</p>
+    </div>
+</div>
+
+<!-- READY-TO-SAVE SHEET (mobile) -->
+<div id="ready-sheet" class="sheet fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-ink/40 backdrop-blur-sm p-0 sm:p-4" onclick="if(event.target===this)closeSheet()">
+    <div class="sheet-panel w-full sm:max-w-sm bg-cream rounded-t-[28px] sm:rounded-[28px] p-7 pb-[max(1.75rem,env(safe-area-inset-bottom))] text-center">
+        <span class="inline-flex w-14 h-14 rounded-full bg-sand text-clay items-center justify-center"><i class="fa-solid fa-check text-lg"></i></span>
+        <h3 class="font-display text-3xl mt-4">Ready to save</h3>
+        <p id="ready-count" class="text-sm text-muted mt-1"></p>
+        <button onclick="shareReady()" class="btn-primary w-full h-12 mt-6"><i class="fa-solid fa-download text-xs"></i> Save to Photos</button>
+        <button onclick="closeSheet()" class="w-full h-11 mt-2 text-sm text-muted hover:text-ink transition">Cancel</button>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="hide fixed bottom-24 left-1/2 -translate-x-1/2 z-[80] bg-ink text-cream text-sm px-5 py-3 rounded-full shadow-xl whitespace-nowrap"></div>
+
+<!-- ============================== ADMIN ============================== -->
+<div id="app-admin" class="hidden min-h-screen">
+
+    <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,#f3ece2,transparent_60%)]">
+        <div class="w-full max-w-sm rise">
+            <div class="text-center mb-8">
+                <span class="inline-flex w-12 h-12 rounded-full border border-clay/30 text-clay items-center justify-center mb-5"><i class="fa-solid fa-camera-retro"></i></span>
+                <h1 class="font-display text-4xl font-medium tracking-tight">Welcome back</h1>
+                <p class="text-sm text-muted mt-1">Sign in to manage your galleries</p>
+            </div>
+            <form id="login-form" class="card p-6 sm:p-7 space-y-4" novalidate>
+                <div>
+                    <label for="login-email" class="label">Email</label>
+                    <input id="login-email" type="email" autocomplete="username" placeholder="you@example.com" class="input">
+                </div>
+                <div>
+                    <label for="login-password" class="label">Password</label>
+                    <div class="relative">
+                        <input id="login-password" type="password" autocomplete="current-password" placeholder="••••••••" class="input pr-11">
+                        <button type="button" onclick="togglePassword()" class="absolute right-1 top-1/2 -translate-y-1/2 btn-icon w-9 h-9" aria-label="Show password"><i id="pw-eye" class="fa-regular fa-eye text-xs"></i></button>
+                    </div>
+                </div>
+                <p id="login-error" class="hidden text-xs text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5"></p>
+                <button id="login-btn" type="submit" class="btn-primary w-full">Sign in</button>
+            </form>
+            <button onclick="exitAdmin()" class="w-full mt-6 text-sm text-muted hover:text-ink transition"><i class="fa-solid fa-arrow-left text-xs mr-1"></i> Back to gallery</button>
+        </div>
+    </div>
+
+    <div id="admin-shell" class="hidden min-h-screen md:flex">
+        <aside class="hidden md:flex w-64 shrink-0 flex-col bg-white border-r border-line h-screen sticky top-0">
+            <div class="h-16 px-5 flex items-center gap-3 border-b border-line">
+                <span class="w-8 h-8 rounded-full border border-clay/30 text-clay flex items-center justify-center"><i class="fa-solid fa-camera-retro text-xs"></i></span>
+                <span class="font-display text-xl font-semibold">Toy Gallery</span>
+            </div>
+            <nav class="flex-1 p-3 space-y-1">
+                <p class="eyebrow text-[10px] px-3 pt-2 pb-2">Manage</p>
+                <button data-tab="dashboard" onclick="switchTab('dashboard')" class="admin-tab w-full"><i class="fa-solid fa-chart-simple w-4"></i> Overview</button>
+                <button data-tab="albums" onclick="switchTab('albums')" class="admin-tab w-full"><i class="fa-regular fa-folder w-4"></i> Albums</button>
+            </nav>
+            <div class="p-3 border-t border-line space-y-1">
+                <p id="admin-email" class="px-3 py-2 text-xs text-muted truncate"></p>
+                <button onclick="exitAdmin()" class="admin-tab w-full"><i class="fa-solid fa-globe w-4"></i> View gallery</button>
+                <button onclick="logout()" class="admin-tab w-full hover:text-red-700"><i class="fa-solid fa-arrow-right-from-bracket w-4"></i> Sign out</button>
+            </div>
+        </aside>
+
+        <div class="flex-1 min-w-0">
+            <header class="sticky top-0 z-20 bg-cream/90 backdrop-blur border-b border-line">
+                <div class="h-16 px-4 sm:px-10 flex items-center justify-between">
+                    <h2 id="admin-title" class="font-display text-3xl font-medium tracking-tight">Albums</h2>
+                    <div class="flex items-center gap-1 md:hidden">
+                        <button onclick="exitAdmin()" class="btn-icon" aria-label="View gallery"><i class="fa-solid fa-globe text-sm"></i></button>
+                        <button onclick="logout()" class="btn-icon" aria-label="Sign out"><i class="fa-solid fa-arrow-right-from-bracket text-sm"></i></button>
+                    </div>
+                </div>
+                <nav class="md:hidden flex gap-1 px-4 pb-3 overflow-x-auto no-scrollbar">
+                    <button data-tab="dashboard" onclick="switchTab('dashboard')" class="admin-tab"><i class="fa-solid fa-chart-simple"></i> Overview</button>
+                    <button data-tab="albums" onclick="switchTab('albums')" class="admin-tab"><i class="fa-regular fa-folder"></i> Albums</button>
+                </nav>
+            </header>
+
+            <main class="p-4 sm:p-10 max-w-4xl">
+                <section id="tab-dashboard" class="admin-section hidden space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="card p-6 rise"><p class="eyebrow text-[10px]">Albums</p><p id="stat-albums" class="font-display text-5xl mt-3">0</p></div>
+                        <div class="card p-6 rise" style="--d:80ms"><p class="eyebrow text-[10px]">Photos live</p><p id="stat-photos" class="font-display text-5xl mt-3">–</p></div>
+                        <div class="card p-6 min-w-0 rise" style="--d:160ms"><p class="eyebrow text-[10px]">Live album</p><p id="stat-active" class="font-display text-2xl mt-4 truncate">–</p></div>
+                    </div>
+                    <p id="stat-sync" class="text-xs text-muted"></p>
+                </section>
+
+                <section id="tab-albums" class="admin-section hidden space-y-6">
+                    <div class="card p-6 sm:p-7 rise">
+                        <h3 class="font-display text-2xl">Add Google Drive folder</h3>
+                        <p class="text-xs text-muted mt-1 mb-5">Paste the full folder link or just the folder ID. New folders go live immediately and replace the current album. The folder must be shared as "Anyone with the link".</p>
+                        <form id="album-form" class="grid sm:grid-cols-[1fr_1fr_auto] gap-3" novalidate>
+                            <input id="album-name" type="text" placeholder="Album name" class="input">
+                            <input id="album-folder" type="text" placeholder="Folder link or ID" class="input font-mono text-xs">
+                            <button type="submit" class="btn-primary"><i class="fa-solid fa-plus text-xs"></i> Add</button>
+                        </form>
+                    </div>
+                    <div class="card overflow-hidden rise" style="--d:80ms">
+                        <div class="px-6 sm:px-7 py-4 border-b border-line flex items-center justify-between">
+                            <h3 class="font-display text-2xl">All albums</h3>
+                            <span class="text-xs text-muted">One live album at a time</span>
+                        </div>
+                        <div id="album-list" class="divide-y divide-line"></div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+</div>
+
+<!-- ============================== SCRIPT ============================== -->
+<script>
+/* -------------------- CONFIG -------------------- */
+const CONFIG = {
+    GAS_API_URL: "https://script.google.com/macros/s/AKfycbwpBEtJ2-VS0rtzRDyR50pJ32awu1q743Cv_ID4bBExm2uMFRUltCd7x1dTs5vT4rDZ/exec",
+    REFRESH_MS: 5000,
+    SESSION_HOURS: 8,
+    DOWNLOAD_CONCURRENCY: 4,
+    // อัลบั้มเริ่มต้นสำหรับเครื่องที่ยังไม่เคยตั้งค่า (เช่น มือถือแขก) เว้นว่าง folderId ไว้ถ้าไม่ต้องการ
+    DEFAULT_ALBUM: { name: "Toy Gallery 2000's", folderId: "" },
+    // passwordHash = SHA-256 of the password. Generate in console: hashPassword('your-password')
+    ADMIN_ACCOUNTS: [
+        { email: "admin@toygallery.com", passwordHash: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918" } // demo: admin
+    ]
+};
+const DEMO_MODE = !CONFIG.GAS_API_URL || CONFIG.GAS_API_URL.includes('xxxx');
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
+
+/* -------------------- HELPERS -------------------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pageUrl = () => location.href.split('#')[0];
+const keyOf = p => p.id || p.url;
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'photos';
+
+let toastTimer;
+function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.remove('hide');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.add('hide'), 2600);
+}
+
+/* -------------------- STATE -------------------- */
+let albums = loadAlbums();
+let photos = [];
+let lastSignature = null;
+let lastSync = null;
+let pollTimer = null;
+let initialized = false;
+let stream = null;
+let lbIndex = 0;
+let selecting = false;
+let busy = false;
+let readyFiles = [];
+let resultList = [];
+let fetchSeq = 0;
+const selected = new Set();
+const revealed = new Set();
+const loadedSet = new Set();
+const DEFAULT_LABELS = {};
+const SKELETON = '<div class="aspect-[4/5] rounded-xl shimmer"></div>'.repeat(4);
+
+function loadAlbums() {
+    let list = null;
+    try {
+        const saved = JSON.parse(localStorage.getItem('tg_albums'));
+        if (Array.isArray(saved)) list = saved;
+    } catch (e) {}
+
+    // เครื่องที่ยังไม่เคยตั้งค่า ใช้อัลบั้มเริ่มต้นจาก CONFIG (ถ้ามี)
+    if (list === null) {
+        const d = CONFIG.DEFAULT_ALBUM;
+        list = d && d.folderId ? [{ id: 1, name: d.name, folderId: d.folderId, isActive: true }] : [];
+    }
+
+    // ให้มีอัลบั้ม Live ได้แค่ 1 อัน
+    let found = false;
+    list.forEach(a => {
+        a.isActive = !!a.isActive && !found;
+        if (a.isActive) found = true;
+    });
+    return list;
+}
+function saveAlbums() { localStorage.setItem('tg_albums', JSON.stringify(albums)); }
+const activeAlbum = () => albums.find(a => a.isActive);
+
+// ล้างรูปของอัลบั้มเดิมทั้งหมด ทุกครั้งที่เปลี่ยนอัลบั้ม Live
+function resetGallery() {
+    fetchSeq++;
+    photos = [];
+    resultList = [];
+    lastSignature = null;
+    lastSync = null;
+    initialized = false;
+    selected.clear();
+    revealed.clear();
+    loadedSet.clear();
+    $('gallery-grid').innerHTML = SKELETON;
+    $('photo-count').textContent = '';
+    $('btn-select').disabled = true;
+    renderHeader();
+}
+
+/* -------------------- VIEWS -------------------- */
+function showView(id) {
+    document.querySelectorAll('.guest-view').forEach(v => v.classList.add('hidden'));
+    $(id).classList.remove('hidden');
+    if (id !== 'view-gallery') setSelectMode(false);
+    id === 'view-scan' ? startCamera() : stopCamera();
+    id === 'view-gallery' ? startPolling() : stopPolling();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderHeader() {
+    const a = activeAlbum();
+    $('album-title').textContent = a ? a.name : 'No album yet';
+    document.title = a ? `${a.name} · Toy Gallery` : "Toy Gallery 2000's";
+    $('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&color=3a2e24&bgcolor=ffffff&data=${encodeURIComponent(pageUrl())}`;
+}
+
+function setStatus(text, state) {
+    $('status-label').textContent = text;
+    const colors = { live: 'bg-emerald-600 animate-pulse', error: 'bg-red-600', idle: 'bg-clay-light' };
+    $('sync-dot').className = `w-1.5 h-1.5 rounded-full ${colors[state] || colors.idle}`;
+}
+
+/* -------------------- DATA -------------------- */
+function startPolling() {
+    fetchPhotos();
+    clearInterval(pollTimer);
+    pollTimer = setInterval(fetchPhotos, CONFIG.REFRESH_MS);
+}
+function stopPolling() { clearInterval(pollTimer); pollTimer = null; }
+
+function demoPhotos(seed = 'demo') {
+    const s = String(seed).slice(0, 10);
+    return Array.from({ length: 12 }, (_, i) => {
+        const base = `https://picsum.photos/seed/${s}-${i}`;
+        return {
+            id: `demo-${s}-${i}`,
+            name: `toy-gallery-${String(i + 1).padStart(2, '0')}.jpg`,
+            thumb: `${base}/600/750`,
+            url: `${base}/1200/1500`,
+            downloadUrl: `${base}/1200/1500`
+        };
+    });
+}
+
+async function fetchPhotos() {
+    const a = activeAlbum();
+    const seq = fetchSeq;
+
+    if (!a) {
+        applyPhotos([]);
+        setStatus('No live album', 'idle');
+        return;
+    }
+
+    if (DEMO_MODE) {
+        applyPhotos(demoPhotos(a.folderId));
+        lastSync = new Date();
+        setStatus('Demo mode', 'idle');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${CONFIG.GAS_API_URL}?folderId=${encodeURIComponent(a.folderId)}&t=${Date.now()}`);
+        const json = await res.json();
+
+        // ถ้าระหว่างรอ แอดมินเปลี่ยนอัลบั้ม Live ไปแล้ว ให้ทิ้งผลลัพธ์นี้
+        if (seq !== fetchSeq || activeAlbum()?.folderId !== a.folderId) return;
+
+        if (!json.success) throw new Error(json.message || 'API error');
+        applyPhotos(Array.isArray(json.data) ? json.data : []);
+        lastSync = new Date();
+        setStatus(`Live · Updated ${lastSync.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`, 'live');
+    } catch (err) {
+        if (seq !== fetchSeq) return;
+        console.error(err);
+        setStatus('Connection lost · Retrying…', 'error');
+        if (lastSignature === null) applyPhotos([]);
+    }
+}
+
+function applyPhotos(list) {
+    const prev = new Set(photos.map(keyOf));
+    photos = list;
+    if (initialized) {
+        const fresh = photos.filter(p => !prev.has(keyOf(p))).length;
+        if (fresh && prev.size) toast(`${plural(fresh, 'new photo')} just arrived`);
+    }
+    initialized = true;
+    const keys = new Set(photos.map(keyOf));
+    [...selected].forEach(k => { if (!keys.has(k)) selected.delete(k); });
+    renderGallery();
+    updateSelectionUI();
+}
+
+/* -------------------- GALLERY RENDER -------------------- */
+const io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        en.target.classList.add('in');
+        revealed.add(en.target.dataset.key);
+        io.unobserve(en.target);
+    });
+}, { rootMargin: '0px 0px -6% 0px', threshold: 0.05 });
+
+function observeTiles(root) { root.querySelectorAll('.tile:not(.in)').forEach(t => io.observe(t)); }
+
+function tileHTML(p, i, delay) {
+    const k = keyOf(p);
+    const seen = revealed.has(k), loaded = loadedSet.has(k);
+    return `
+    <figure class="tile ${seen ? 'in' : ''} ${selected.has(k) ? 'selected' : ''} group relative aspect-[4/5] overflow-hidden rounded-xl bg-sand cursor-pointer select-none"
+            data-key="${esc(k)}" data-i="${i}" style="--d:${delay}ms">
+        <div class="shimmer absolute inset-0 ${loaded ? 'done' : ''}"></div>
+        <img src="${esc(p.thumb || p.url)}" alt="Photo ${i + 1}" loading="lazy" decoding="async" draggable="false"
+             onload="imgLoaded(this)" class="${loaded ? 'loaded' : ''} absolute inset-0 w-full h-full object-cover">
+        <div class="tile-shade pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent"></div>
+        <button data-action="download" class="tile-dl absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full bg-cream/90 backdrop-blur text-ink flex items-center justify-center shadow-sm hover:bg-white" aria-label="Download">
+            <i class="fa-solid fa-arrow-down text-xs"></i>
+        </button>
+        <span class="tile-check absolute top-2.5 left-2.5 w-6 h-6 rounded-full border-2 border-white/90 bg-ink/15 backdrop-blur text-transparent flex items-center justify-center shadow">
+            <i class="fa-solid fa-check text-[10px]"></i>
+        </span>
+    </figure>`;
+}
+
+function imgLoaded(img) {
+    img.classList.add('loaded');
+    const t = img.closest('.tile');
+    if (!t) return;
+    loadedSet.add(t.dataset.key);
+    t.querySelector('.shimmer')?.classList.add('done');
+}
+
+function renderGallery() {
+    const sig = photos.map(keyOf).join('|');
+    if (sig === lastSignature) return;
+    lastSignature = sig;
+
+    $('photo-count').textContent = photos.length ? plural(photos.length, 'photo') : '';
+    $('btn-select').disabled = !photos.length;
+    const grid = $('gallery-grid');
+
+    if (!photos.length) {
+        const live = activeAlbum();
+        grid.innerHTML = `
+            <div class="col-span-full py-24 text-center fade-in">
+                <p class="font-display italic text-3xl text-clay">${live ? 'No photos yet' : 'No live album'}</p>
+                <p class="text-sm text-muted mt-2">${live ? 'New photos will appear here automatically.' : 'Please set an album live from the admin panel.'}</p>
+            </div>`;
+        return;
+    }
+    let n = 0;
+    grid.innerHTML = photos.map((p, i) => tileHTML(p, i, revealed.has(keyOf(p)) ? 0 : (n++ % 8) * 70)).join('');
+    observeTiles(grid);
+}
+
+function onGridClick(e) {
+    const tile = e.target.closest('.tile');
+    if (!tile) return;
+    const isResult = !!e.target.closest('#result-grid');
+    const list = isResult ? resultList : photos;
+    const p = list[+tile.dataset.i];
+    if (!p) return;
+    if (e.target.closest('[data-action="download"]')) { e.stopPropagation(); return downloadPhotos([p]); }
+    if (selecting && !isResult) return toggleSelect(tile);
+    const idx = photos.findIndex(x => keyOf(x) === keyOf(p));
+    if (idx >= 0) openLightbox(idx);
+}
+$('gallery-grid').addEventListener('click', onGridClick);
+$('result-grid').addEventListener('click', onGridClick);
+
+async function shareGallery() {
+    const url = pageUrl();
+    if (navigator.share) { try { await navigator.share({ title: document.title, url }); } catch (e) {} }
+    else { try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch (e) { toast('Unable to copy link'); } }
+}
+
+/* -------------------- SELECTION -------------------- */
+function setSelectMode(on) {
+    selecting = on;
+    if (!on) selected.clear();
+    $('gallery-grid').classList.toggle('selecting', on);
+    $('gallery-grid').querySelectorAll('.tile').forEach(t => t.classList.toggle('selected', selected.has(t.dataset.key)));
+    $('btn-select').innerHTML = on ? '<span>Cancel</span>' : '<i class="fa-regular fa-square-check text-xs"></i><span>Select</span>';
+    $('btn-select-all').classList.toggle('hidden', !on);
+    updateSelectionUI();
+}
+
+function toggleSelect(tile) {
+    const k = tile.dataset.key;
+    selected.has(k) ? selected.delete(k) : selected.add(k);
+    tile.classList.toggle('selected', selected.has(k));
+    if (navigator.vibrate) navigator.vibrate(8);
+    updateSelectionUI();
+}
+
+function selectAll() {
+    const all = selected.size === photos.length;
+    selected.clear();
+    if (!all) photos.forEach(p => selected.add(keyOf(p)));
+    $('gallery-grid').querySelectorAll('.tile').forEach(t => t.classList.toggle('selected', selected.has(t.dataset.key)));
+    updateSelectionUI();
+}
+
+function clearSelection() { setSelectMode(false); }
+
+function updateSelectionUI() {
+    const n = selected.size;
+    $('sel-count').textContent = `${n} selected`;
+    $('sel-hint').textContent = n ? (IS_TOUCH ? 'Saves directly to your Photos' : 'Downloads as a ZIP file') : 'Tap photos to select';
+    $('dl-btn').disabled = !n || busy;
+    $('btn-select-all').textContent = n && n === photos.length ? 'Deselect all' : 'Select all';
+    $('action-bar').classList.toggle('show', selecting);
+    $('guest-main').classList.toggle('pb-28', selecting);
+}
+
+async function downloadSelected() {
+    const list = photos.filter(p => selected.has(keyOf(p)));
+    const ok = await downloadPhotos(list);
+    if (ok) setSelectMode(false);
+}
+
+/* -------------------- DOWNLOAD ENGINE -------------------- */
+async function photoToFile(p, idx) {
+    let blob;
+    if (DEMO_MODE || !p.id || String(p.id).startsWith('demo-')) {
+        const r = await fetch(p.downloadUrl || p.url, { mode: 'cors' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        blob = await r.blob();
+    } else {
+        const a = activeAlbum();
+        if (!a) throw new Error('No live album');
+        const r = await fetch(`${CONFIG.GAS_API_URL}?action=file&folderId=${encodeURIComponent(a.folderId)}&id=${encodeURIComponent(p.id)}`);
+        const j = await r.json();
+        if (!j.success) throw new Error(j.message || 'File error');
+        const bin = atob(j.data);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        blob = new Blob([bytes], { type: j.mimeType || 'image/jpeg' });
+    }
+    const type = blob.type || 'image/jpeg';
+    const ext = (type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+    const base = (p.name || `photo-${idx + 1}`).replace(/\.[^.]+$/, '');
+    return new File([blob], `${base}.${ext}`, { type });
+}
+
+async function mapLimit(items, limit, fn, onTick) {
+    const out = new Array(items.length);
+    let next = 0, done = 0;
+    async function worker() {
+        while (next < items.length) {
+            const i = next++;
+            try { out[i] = await fn(items[i], i); } catch (e) { console.warn(e); out[i] = null; }
+            onTick(++done);
+        }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return out;
+}
+
+function dedupeNames(files) {
+    const used = {};
+    return files.map(f => {
+        const count = used[f.name] = (used[f.name] || 0) + 1;
+        if (count === 1) return f;
+        const dot = f.name.lastIndexOf('.');
+        return new File([f], `${f.name.slice(0, dot)}-${count}${f.name.slice(dot)}`, { type: f.type });
+    });
+}
+
+function saveBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function setProgress(done, total, label) {
+    const bar = $('progress');
+    const btns = ['dl-btn', 'lb-download', 'btn-dl-results'];
+    if (done === null) {
+        bar.style.width = '100%';
+        setTimeout(() => { bar.style.opacity = 0; setTimeout(() => (bar.style.width = '0'), 500); }, 300);
+        btns.forEach(id => { $(id).innerHTML = DEFAULT_LABELS[id]; $(id).disabled = false; });
+        updateSelectionUI();
+        return;
+    }
+    bar.style.opacity = 1;
+    bar.style.width = `${Math.max(4, (done / total) * 100)}%`;
+    const text = label || (total > 1 ? `Preparing ${done}/${total}` : 'Preparing…');
+    btns.forEach(id => { $(id).innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> ${text}`; $(id).disabled = true; });
+}
+
+async function downloadPhotos(list) {
+    list = (list || []).filter(Boolean);
+    if (busy || !list.length) return false;
+    busy = true;
+    setProgress(0, list.length);
+    let ok = false;
+    try {
+        let files = (await mapLimit(list, CONFIG.DOWNLOAD_CONCURRENCY, photoToFile, d => setProgress(d, list.length))).filter(Boolean);
+        const failed = list.length - files.length;
+        if (!files.length) throw new Error('All downloads failed');
+        files = dedupeNames(files);
+
+        if (IS_TOUCH && navigator.canShare && navigator.canShare({ files })) {
+            readyFiles = files;
+            openSheet();
+        } else if (files.length === 1) {
+            saveBlob(files[0], files[0].name);
+            toast('Download started');
+        } else {
+            setProgress(files.length, files.length, 'Creating ZIP…');
+            const zip = new JSZip();
+            files.forEach(f => zip.file(f.name, f));
+            const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+            saveBlob(blob, `${slug(activeAlbum()?.name)}-${files.length}-photos.zip`);
+            toast(`${plural(files.length, 'photo')} downloaded`);
+        }
+        if (failed) setTimeout(() => toast(`${plural(failed, 'photo')} could not be downloaded`), 1500);
+        ok = true;
+    } catch (err) {
+        console.error(err);
+        toast('Download failed. Please try again.');
+    } finally {
+        busy = false;
+        setProgress(null);
+    }
+    return ok;
+}
+
+function openSheet() {
+    $('ready-count').textContent = `${plural(readyFiles.length, 'photo')} prepared`;
+    $('ready-sheet').classList.add('open');
+}
+function closeSheet() { $('ready-sheet').classList.remove('open'); }
+
+async function shareReady() {
+    try {
+        await navigator.share({ files: readyFiles, title: document.title });
+        closeSheet();
+    } catch (e) {
+        if (e.name === 'AbortError') return;
+        readyFiles.forEach(f => saveBlob(f, f.name));
+        closeSheet();
+    }
+}
+
+/* -------------------- LIGHTBOX -------------------- */
+function openLightbox(i) {
+    lbIndex = i;
+    setLbImage(true);
+    $('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+    $('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+}
+function stepLightbox(d) {
+    if (!photos.length) return;
+    lbIndex = (lbIndex + d + photos.length) % photos.length;
+    setLbImage(false);
+}
+function setLbImage(instant) {
+    const p = photos[lbIndex];
+    if (!p) return closeLightbox();
+    const img = $('lb-img');
+    const pad = n => String(n).padStart(2, '0');
+    $('lb-counter').textContent = `${pad(lbIndex + 1)} — ${pad(photos.length)}`;
+    img.classList.add('swap');
+    const apply = () => {
+        img.onload = () => img.classList.remove('swap');
+        img.src = p.url;
+        if (img.complete && img.naturalWidth) requestAnimationFrame(() => img.classList.remove('swap'));
+    };
+    instant ? apply() : setTimeout(apply, 180);
+    [1, -1].forEach(d => {
+        const n = photos[(lbIndex + d + photos.length) % photos.length];
+        if (n) new Image().src = n.url;
+    });
+}
+document.addEventListener('keydown', e => {
+    if (!$('lightbox').classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') stepLightbox(-1);
+    if (e.key === 'ArrowRight') stepLightbox(1);
+});
+let touchX = null;
+$('lb-stage').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+$('lb-stage').addEventListener('touchend', e => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) stepLightbox(dx < 0 ? 1 : -1);
+    touchX = null;
+});
+
+/* -------------------- CAMERA -------------------- */
+async function startCamera() {
+    const err = $('camera-error');
+    err.classList.add('hidden'); err.classList.remove('flex');
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        $('camera').srcObject = stream;
+    } catch (e) {
+        console.error(e);
+        err.classList.remove('hidden'); err.classList.add('flex');
+    }
+}
+function stopCamera() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+function capture() {
+    const v = $('camera');
+    if (!stream || !v.videoWidth) return toast('Camera is not ready');
+    const c = document.createElement('canvas');
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    const ctx = c.getContext('2d');
+    ctx.translate(c.width, 0); ctx.scale(-1, 1);
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+    $('profile-img').src = c.toDataURL('image/jpeg', 0.8);
+    showView('view-result');
+    renderResults();
+}
+function renderResults() {
+    resultList = photos.slice(0, 6); // demo: replace with real face-matching results
+    $('btn-dl-results').classList.toggle('hidden', !resultList.length);
+    const grid = $('result-grid');
+    grid.innerHTML = resultList.length
+        ? resultList.map((p, i) => tileHTML(p, i, i * 80)).join('')
+        : `<p class="col-span-full font-display italic text-2xl text-clay py-16 text-center">No matching photos found.</p>`;
+    grid.querySelectorAll('.tile').forEach(t => t.classList.remove('in'));
+    observeTiles(grid);
+}
+
+/* -------------------- ADMIN: AUTH -------------------- */
+async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+window.hashPassword = async pw => console.log(await sha256(pw));
+
+let failedAttempts = 0, lockUntil = 0;
+
+function getSession() {
+    try {
+        const s = JSON.parse(sessionStorage.getItem('tg_session'));
+        if (s && s.exp > Date.now()) return s;
+    } catch (e) {}
+    sessionStorage.removeItem('tg_session');
+    return null;
+}
+function showLoginError(msg) { const el = $('login-error'); el.textContent = msg; el.classList.remove('hidden'); }
+
+$('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    $('login-error').classList.add('hidden');
+    if (Date.now() < lockUntil) return showLoginError(`Too many attempts. Try again in ${Math.ceil((lockUntil - Date.now()) / 1000)}s.`);
+
+    const email = $('login-email').value.trim().toLowerCase();
+    const password = $('login-password').value;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showLoginError('Please enter a valid email address.');
+    if (!password) return showLoginError('Please enter your password.');
+
+    const btn = $('login-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Signing in…';
+    const hash = await sha256(password);
+    const ok = CONFIG.ADMIN_ACCOUNTS.some(a => a.email.toLowerCase() === email && a.passwordHash === hash);
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+
+    if (!ok) {
+        if (++failedAttempts >= 5) { lockUntil = Date.now() + 30000; failedAttempts = 0; }
+        return showLoginError('Incorrect email or password.');
+    }
+    failedAttempts = 0;
+    sessionStorage.setItem('tg_session', JSON.stringify({ email, exp: Date.now() + CONFIG.SESSION_HOURS * 3600000 }));
+    $('login-password').value = '';
+    showAdminShell();
+});
+
+function togglePassword() {
+    const input = $('login-password');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    $('pw-eye').className = `fa-regular ${show ? 'fa-eye-slash' : 'fa-eye'} text-xs`;
+}
+function logout() { sessionStorage.removeItem('tg_session'); showLogin(); toast('Signed out'); }
+
+/* -------------------- ADMIN: SHELL -------------------- */
+function openAdmin() {
+    stopCamera(); stopPolling(); closeLightbox(); setSelectMode(false);
+    $('app-guest').classList.add('hidden');
+    $('app-admin').classList.remove('hidden');
+    getSession() ? showAdminShell() : showLogin();
+    window.scrollTo(0, 0);
+}
+function exitAdmin() {
+    $('app-admin').classList.add('hidden');
+    $('app-guest').classList.remove('hidden');
+    lastSignature = null;
+    renderHeader();
+    showView('view-gallery');
+}
+function showLogin() {
+    $('admin-shell').classList.add('hidden');
+    $('login-screen').classList.remove('hidden');
+    setTimeout(() => $('login-email').focus(), 50);
+}
+function showAdminShell() {
+    $('login-screen').classList.add('hidden');
+    $('admin-shell').classList.remove('hidden');
+    $('admin-email').textContent = getSession()?.email || '';
+    renderAlbums();
+    switchTab('albums');
+}
+function switchTab(tab) {
+    document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+    $(`tab-${tab}`).classList.remove('hidden');
+    document.querySelectorAll('.admin-tab[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    $('admin-title').textContent = tab === 'dashboard' ? 'Overview' : 'Albums';
+    if (tab === 'dashboard') fetchPhotos().then(renderStats);
+}
+
+/* -------------------- ADMIN: ALBUMS -------------------- */
+function parseFolderId(input) {
+    const v = input.trim();
+    const m = v.match(/folders\/([a-zA-Z0-9_-]+)/) || v.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    return m ? m[1] : v;
+}
+
+$('album-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = $('album-name').value.trim();
+    const folderId = parseFolderId($('album-folder').value);
+    if (!name || !folderId) return toast('Please fill in both fields');
+    if (!/^[a-zA-Z0-9_-]{10,}$/.test(folderId)) return toast('Invalid folder ID');
+    if (albums.some(a => a.folderId === folderId)) return toast('This folder already exists');
+
+    // ลิงก์ใหม่ขึ้นเป็น Live ทันที อัลบั้มอื่นหยุดแสดงทั้งหมด
+    albums.forEach(a => a.isActive = false);
+    albums.push({ id: Date.now(), name, folderId, isActive: true });
+    saveAlbums();
+    resetGallery();
+
+    $('album-name').value = '';
+    $('album-folder').value = '';
+    renderAlbums();
+    toast('Album added and set live');
+});
+
+function setActiveAlbum(id) {
+    albums.forEach(a => a.isActive = a.id === id);
+    saveAlbums();
+    resetGallery();
+    renderAlbums();
+    toast('Live album updated');
+}
+
+function deleteAlbum(id) {
+    if (!confirm('Delete this album? Photos in Google Drive will not be affected.')) return;
+    const wasActive = albums.find(a => a.id === id)?.isActive;
+    albums = albums.filter(a => a.id !== id);
+    saveAlbums();
+    // ไม่ตั้งอัลบั้มอื่นเป็น Live ให้เอง แอดมินต้องเลือกเอง
+    if (wasActive) {
+        resetGallery();
+        toast('Live album removed');
+    }
+    renderAlbums();
+}
+
+function renderAlbums() {
+    $('album-list').innerHTML = albums.length
+        ? albums.map(a => `
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-6 sm:px-7 py-5 ${a.isActive ? 'bg-sand/60' : ''}">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2.5">
+                        <p class="font-display text-xl truncate">${esc(a.name)}</p>
+                        ${a.isActive ? '<span class="shrink-0 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] bg-clay text-cream px-2.5 py-1 rounded-full"><span class="w-1 h-1 rounded-full bg-emerald-300"></span>Live</span>' : ''}
+                    </div>
+                    <p class="font-mono text-[11px] text-muted truncate mt-1">${esc(a.folderId)}</p>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                    ${a.isActive ? '' : `<button onclick="setActiveAlbum(${a.id})" class="btn-ghost h-9 flex-1 sm:flex-none">Set live</button>`}
+                    <a href="https://drive.google.com/drive/folders/${encodeURIComponent(a.folderId)}" target="_blank" rel="noopener" class="btn-ghost h-9 w-9 px-0" aria-label="Open in Drive"><i class="fa-brands fa-google-drive text-xs"></i></a>
+                    <button onclick="deleteAlbum(${a.id})" class="btn-ghost h-9 w-9 px-0 text-red-700 hover:bg-red-50 hover:border-red-200" aria-label="Delete"><i class="fa-regular fa-trash-can text-xs"></i></button>
+                </div>
+            </div>`).join('')
+        : `<p class="px-6 py-14 text-center font-display italic text-xl text-muted">No albums yet. Add your first Google Drive folder above.</p>`;
+    renderStats();
+}
+
+function renderStats() {
+    const a = activeAlbum();
+    $('stat-albums').textContent = albums.length;
+    $('stat-active').textContent = a ? a.name : 'None';
+    $('stat-photos').textContent = a ? photos.length : '–';
+    $('stat-sync').textContent = lastSync ? `Last synced ${lastSync.toLocaleString('en-GB')}${DEMO_MODE ? ' (demo mode)' : ''}` : '';
+}
+
+/* -------------------- INIT -------------------- */
+window.addEventListener('DOMContentLoaded', () => {
+    ['dl-btn', 'lb-download', 'btn-dl-results'].forEach(id => DEFAULT_LABELS[id] = $(id).innerHTML);
+    renderHeader();
+    showView('view-gallery');
+});
+</script>
+</body>
+</html>
